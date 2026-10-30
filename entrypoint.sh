@@ -2,10 +2,8 @@
 
 # Configuration and defaults
 export RCLONE_CONFIG="/config/rclone.conf"
-
 WATCH_DIR="/watch"
 DEBOUNCE_DELAY=${DEBOUNCE_DELAY:-60}
-RCLONE_ACTION=${RCLONE_ACTION:-copy}
 
 echo "Starting watcher on $WATCH_DIR (debounce delay: ${DEBOUNCE_DELAY}s)..."
 
@@ -31,10 +29,10 @@ while true; do
         fi
     done
 
-    echo "Settling period finished. Triggering rclone ${RCLONE_ACTION} to ${RCLONE_REMOTE}..."
+    echo "Settling period finished. Triggering rclone..."
 
-    # Run rclone to sync the entire watch directory tree to the remote destination
-    rclone "$RCLONE_ACTION" $RCLONE_ARGS "$WATCH_DIR" "$RCLONE_REMOTE"
+    echo "Running: rclone $@"
+    rclone "$@"
 
     echo "Sync finished. Resuming watch..."
 done
