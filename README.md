@@ -11,6 +11,7 @@ services:
     image: ghcr.io/pauloromeira/watchnsync:latest
     container_name: watchnsync
     environment:
+      - TZ=<timezone>
       - DEBOUNCE_DELAY=60
     command: sync --verbose --dry-run /watch myremote:backup
     volumes:

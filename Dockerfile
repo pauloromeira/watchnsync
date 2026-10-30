@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk add --no-cache inotify-tools bash rclone
+RUN apk add --no-cache inotify-tools bash rclone tzdata
 
 RUN mkdir -p /watch /config
 
