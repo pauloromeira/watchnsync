@@ -1,7 +1,10 @@
-.git
+.git/
+.github/
+
 .gitignore
 README.md
 
 docker-compose.yml
-docker-compose.yaml
 docker-compose.*.yml
+docker-compose.yaml
+docker-compose.*.yaml
