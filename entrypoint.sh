@@ -5,7 +5,7 @@ export RCLONE_CONFIG="/config/rclone.conf"
 WATCH_DIR="/watch"
 DEBOUNCE_DELAY=${DEBOUNCE_DELAY:-60}
 
-echo "Starting watcher on $WATCH_DIR (debounce delay: ${DEBOUNCE_DELAY}s)..."
+echo "Starting watcher on $WATCH_DIR (DEBOUNCE_DELAY=${DEBOUNCE_DELAY})..."
 
 # Graceful shutdown handling for Docker signals
 trap 'echo "Stopping watcher gracefully..."; exit 0' SIGTERM SIGINT
