@@ -3,7 +3,9 @@
 # Configuration and defaults
 export RCLONE_CONFIG="/config/rclone.conf"
 WATCH_DIR="/watch"
-DEBOUNCE_DELAY=${DEBOUNCE_DELAY:-60}
+DEBOUNCE_DELAY="${DEBOUNCE_DELAY:-60}"
+
+RCLONE_PID=""
 
 log() {
     local level="$1"
@@ -11,10 +13,21 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*"
 }
 
-log "INFO" "Starting watcher on $WATCH_DIR (DEBOUNCE_DELAY=${DEBOUNCE_DELAY})..."
+cleanup() {
+    log "INFO" "Stopping watcher gracefully..."
+
+    if [ -n "$RCLONE_PID" ]; then
+        kill -TERM "$RCLONE_PID" 2>/dev/null
+        wait "$RCLONE_PID" 2>/dev/null
+    fi
+
+    exit 0
+}
 
 # Graceful shutdown handling for Docker signals
-trap 'log "INFO" "Stopping watcher gracefully..."; exit 0' SIGTERM SIGINT
+trap cleanup SIGTERM SIGINT
+
+log "INFO" "Starting watcher on $WATCH_DIR (DEBOUNCE_DELAY=${DEBOUNCE_DELAY})..."
 
 # Main loop with debounce logic
 while true; do
@@ -36,9 +49,13 @@ while true; do
     done
 
     log "INFO" "Settling period finished. Triggering rclone..."
-
     log "DEBUG" "Running: rclone $@"
-    rclone "$@"
 
-    log "INFO" "Sync finished. Resuming watch..."
+    rclone "$@" &
+    RCLONE_PID=$!
+    wait "$RCLONE_PID"
+    RCLONE_STATUS=$?
+    RCLONE_PID=""
+
+    log "INFO" "Sync finished (exit code: $RCLONE_STATUS). Resuming watch..."
 done
