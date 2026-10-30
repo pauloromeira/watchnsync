@@ -1,0 +1,17 @@
+---
+
+services:
+  watchnrun:
+    image: ghcr.io/pauloromeira/watchnrun:latest
+    container_name: watchnrun
+    restart: unless-stopped
+    environment:
+      - RCLONE_ACTION=sync
+      - RCLONE_REMOTE=myremote:backup
+      - RCLONE_ARGS=--verbose
+      - DEBOUNCE_DELAY=60
+    volumes:
+      # Local folder to recursively monitor
+      - /path/to/host/watch:/watch
+      # Path to your host rclone configuration file (read-only recommended)
+      - /path/to/host/rclone.conf:/config/rclone.conf:ro
