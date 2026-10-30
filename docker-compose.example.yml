@@ -5,13 +5,13 @@
 #   - https://linux.die.net/man/1/inotifywait
 
 services:
-  watchnrun:
-    image: ghcr.io/pauloromeira/watchnrun:latest
-    container_name: watchnrun
+  watchnsync:
+    image: ghcr.io/pauloromeira/watchnsync:latest
+    container_name: watchnsync
     environment:
       - RCLONE_ACTION=sync
       - RCLONE_REMOTE=myremote:backup
-      - RCLONE_ARGS=--verbose
+      - RCLONE_ARGS=--verbose --dry-run
       - DEBOUNCE_DELAY=60
     volumes:
       # Local folder to recursively monitor
