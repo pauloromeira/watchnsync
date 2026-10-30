@@ -12,7 +12,7 @@ trap 'echo "Stopping watcher gracefully..."; exit 0' SIGTERM SIGINT
 # Main loop with debounce logic
 while true; do
     CHANGES_DETECTED=false
-    
+
     while true; do
         if [ "$CHANGES_DETECTED" = false ]; then
             if inotifywait -qq -r -e close_write -e moved_to -e create -e delete "$WATCH_DIR"; then
@@ -29,9 +29,9 @@ while true; do
     done
 
     echo "Settling period finished. Triggering rclone ${RCLONE_ACTION} to ${RCLONE_REMOTE}..."
-    
+
     # Run rclone to sync the entire watch directory tree to the remote destination
     rclone "${RCLONE_ACTION:-copy}" $RCLONE_ARGS "$WATCH_DIR" "$RCLONE_REMOTE"
-    
+
     echo "Sync finished. Resuming watch..."
 done
