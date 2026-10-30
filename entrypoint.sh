@@ -1,10 +1,13 @@
 #!/bin/bash
 
+# Configuration and defaults
 export RCLONE_CONFIG="/config/rclone.conf"
-WATCH_DIR="/watch"
-DELAY=${DEBOUNCE_DELAY:-60}
 
-echo "Starting watcher on $WATCH_DIR (debounce delay: ${DELAY}s)..."
+WATCH_DIR="/watch"
+DEBOUNCE_DELAY=${DEBOUNCE_DELAY:-60}
+RCLONE_ACTION=${RCLONE_ACTION:-copy}
+
+echo "Starting watcher on $WATCH_DIR (debounce delay: ${DEBOUNCE_DELAY}s)..."
 
 # Graceful shutdown handling for Docker signals
 trap 'echo "Stopping watcher gracefully..."; exit 0' SIGTERM SIGINT
@@ -17,10 +20,10 @@ while true; do
         if [ "$CHANGES_DETECTED" = false ]; then
             if inotifywait -qq -r -e close_write -e moved_to -e create -e delete "$WATCH_DIR"; then
                 CHANGES_DETECTED=true
-                echo "Change detected. Waiting for activity to settle (${DELAY}s)..."
+                echo "Change detected. Waiting for activity to settle (${DEBOUNCE_DELAY}s)..."
             fi
         else
-            if inotifywait -qq -r -t "$DELAY" -e close_write -e moved_to -e create -e delete "$WATCH_DIR"; then
+            if inotifywait -qq -r -t "$DEBOUNCE_DELAY" -e close_write -e moved_to -e create -e delete "$WATCH_DIR"; then
                 echo "Additional change detected. Resetting timer..."
             else
                 break
@@ -31,7 +34,7 @@ while true; do
     echo "Settling period finished. Triggering rclone ${RCLONE_ACTION} to ${RCLONE_REMOTE}..."
 
     # Run rclone to sync the entire watch directory tree to the remote destination
-    rclone "${RCLONE_ACTION:-copy}" $RCLONE_ARGS "$WATCH_DIR" "$RCLONE_REMOTE"
+    rclone "$RCLONE_ACTION" $RCLONE_ARGS "$WATCH_DIR" "$RCLONE_REMOTE"
 
     echo "Sync finished. Resuming watch..."
 done
