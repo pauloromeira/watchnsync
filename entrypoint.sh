@@ -30,6 +30,7 @@ trap cleanup EXIT
 trap 'exit 0' TERM INT
 
 inotifywait \
+    --quiet \
     --monitor \
     --recursive \
     --event "$WATCH_EVENTS" \
