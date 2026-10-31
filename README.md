@@ -14,9 +14,9 @@ services:
       - TZ=<timezone>
       - DEBOUNCE_DELAY=60
       - WATCH_EVENTS=close_write,create,move
-    command: copy --verbose --dry-run /watch myremote:backup
+    command: copy --verbose --dry-run /data myremote:backup
     volumes:
       - /path/to/host/rclone.conf:/config/rclone.conf:ro
-      - /path/to/host/watch:/watch
+      - /path/to/host/data:/data
     restart: unless-stopped
 ```

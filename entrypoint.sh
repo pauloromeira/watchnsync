@@ -3,8 +3,8 @@
 export RCLONE_CONFIG="/config/rclone.conf"
 
 DEBOUNCE_DELAY="${DEBOUNCE_DELAY:-60}"
+WATCH_DIR="${WATCH_DIR:-/data}"
 WATCH_EVENTS="${WATCH_EVENTS:-close_write,create,delete,move}"
-WATCH_DIR="/watch"
 
 EVENT_FIFO="$(mktemp -d)/events"
 mkfifo "$EVENT_FIFO"
