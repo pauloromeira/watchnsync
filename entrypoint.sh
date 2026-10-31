@@ -45,7 +45,7 @@ while IFS= read -r; do
     log INFO "Change detected. Waiting for activity to settle..."
 
     while IFS= read -r -t "$DEBOUNCE_DELAY"; do
-      log INFO "Additional change detected. Resetting timer..."
+      log DEBUG "Additional change detected. Resetting timer..."
     done || true
 
     log INFO "Activity settled. Running rclone..."
