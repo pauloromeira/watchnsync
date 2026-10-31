@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export RCLONE_CONFIG="/config/rclone.conf"
+export RCLONE_CONFIG="${RCLONE_CONFIG:-/config/rclone.conf}"
 
 DEBOUNCE_DELAY="${DEBOUNCE_DELAY:-60}"
 WATCH_DIR="${WATCH_DIR:-/data}"
