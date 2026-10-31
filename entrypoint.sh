@@ -1,55 +1,54 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Configuration and defaults
 export RCLONE_CONFIG="/config/rclone.conf"
-WATCH_DIR="/watch"
+
 DEBOUNCE_DELAY="${DEBOUNCE_DELAY:-60}"
+WATCH_EVENTS="${WATCH_EVENTS:-close_write,create,delete,move}"
+WATCH_DIR="/watch"
+
+EVENT_FIFO="$(mktemp -d)/events"
+mkfifo "$EVENT_FIFO"
 
 RCLONE_PID=""
 
 log() {
-    local level="$1"
-    shift
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$1] ${*:2}"
 }
 
 cleanup() {
-    log "INFO" "Stopping watcher gracefully..."
+    log INFO "Stopping watcher..."
 
-    if [ -n "$RCLONE_PID" ]; then
-        kill -TERM "$RCLONE_PID" 2>/dev/null
-        wait "$RCLONE_PID" 2>/dev/null
+    if [[ -n "$RCLONE_PID" ]]; then
+        kill -TERM "$RCLONE_PID" 2>/dev/null || true
+        wait "$RCLONE_PID" 2>/dev/null || true
     fi
 
-    exit 0
+    rm -rf "$(dirname "$EVENT_FIFO")"
 }
 
-# Graceful shutdown handling for Docker signals
-trap cleanup SIGTERM SIGINT
+trap cleanup EXIT
+trap 'exit 0' TERM INT
 
-log "INFO" "Starting watcher on $WATCH_DIR (DEBOUNCE_DELAY=${DEBOUNCE_DELAY})..."
+inotifywait \
+    --monitor \
+    --recursive \
+    --event "$WATCH_EVENTS" \
+    --timefmt '%s' \
+    --format '%T' \
+    "$WATCH_DIR" > "$EVENT_FIFO" &
 
-# Main loop with debounce logic
-while true; do
-    CHANGES_DETECTED=false
+log INFO "Watching $WATCH_DIR (debounce: ${DEBOUNCE_DELAY}s, events: ${WATCH_EVENTS})..."
 
-    while true; do
-        if [ "$CHANGES_DETECTED" = false ]; then
-            if inotifywait -qq -r -e close_write -e moved_to -e create -e delete "$WATCH_DIR"; then
-                CHANGES_DETECTED=true
-                log "INFO" "Change detected. Waiting for activity to settle (${DEBOUNCE_DELAY}s)..."
-            fi
-        else
-            if inotifywait -qq -r -t "$DEBOUNCE_DELAY" -e close_write -e moved_to -e create -e delete "$WATCH_DIR"; then
-                log "INFO" "Additional change detected. Resetting timer..."
-            else
-                break
-            fi
-        fi
-    done
+while IFS= read -r; do
 
-    log "INFO" "Settling period finished. Triggering rclone..."
-    log "DEBUG" "Running: rclone $@"
+    log INFO "Change detected. Waiting for activity to settle..."
+
+    while IFS= read -r -t "$DEBOUNCE_DELAY"; do
+      log INFO "Additional change detected. Resetting timer..."
+    done || true
+
+    log INFO "Activity settled. Running rclone..."
+    log DEBUG "Running: rclone $@"
 
     rclone "$@" &
     RCLONE_PID=$!
@@ -57,5 +56,6 @@ while true; do
     RCLONE_STATUS=$?
     RCLONE_PID=""
 
-    log "INFO" "Sync finished (exit code: $RCLONE_STATUS). Resuming watch..."
-done
+    log INFO "Rclone finished (exit code: $RCLONE_STATUS)."
+
+done < "$EVENT_FIFO"
