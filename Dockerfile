@@ -1,8 +1,8 @@
 FROM alpine:latest
 
-RUN apk add --no-cache inotify-tools bash rclone tzdata
+RUN apk add --no-cache bash tzdata inotify-tools rclone
 
-RUN mkdir -p /data /config
+RUN mkdir -p /config /data
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
