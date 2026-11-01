@@ -6,9 +6,6 @@ DEBOUNCE_DELAY="${DEBOUNCE_DELAY:-60}"
 WATCH_DIR="${WATCH_DIR:-/data}"
 WATCH_EVENTS="${WATCH_EVENTS:-close_write,create,delete,move}"
 
-EVENT_FIFO="$(mktemp -d)/events"
-mkfifo "$EVENT_FIFO"
-
 RCLONE_PID=""
 
 log() {
@@ -22,21 +19,10 @@ cleanup() {
         kill -TERM "$RCLONE_PID" 2>/dev/null || true
         wait "$RCLONE_PID" 2>/dev/null || true
     fi
-
-    rm -rf "$(dirname "$EVENT_FIFO")"
 }
 
 trap cleanup EXIT
 trap 'exit 0' TERM INT
-
-inotifywait \
-    --quiet \
-    --monitor \
-    --recursive \
-    --event "$WATCH_EVENTS" \
-    --timefmt '%s' \
-    --format '%T' \
-    "$WATCH_DIR" > "$EVENT_FIFO" &
 
 log INFO "Watching $WATCH_DIR (debounce: ${DEBOUNCE_DELAY}s, events: ${WATCH_EVENTS})..."
 
@@ -59,4 +45,16 @@ while IFS= read -r; do
 
     log INFO "Rclone finished (exit code: $RCLONE_STATUS)."
 
-done < "$EVENT_FIFO"
+done < <(
+  inotifywait \
+    --quiet \
+    --monitor \
+    --recursive \
+    --event "$WATCH_EVENTS" \
+    --timefmt '%s' \
+    --format '%T' \
+    "$WATCH_DIR"
+)
+
+log ERROR "File system watcher (inotifywait) terminated unexpectedly."
+exit 1
