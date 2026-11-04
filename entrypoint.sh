@@ -43,7 +43,12 @@ while IFS= read -r; do
     RCLONE_STATUS=$?
     RCLONE_PID=""
 
-    log INFO "Rclone finished (exit code: $RCLONE_STATUS)."
+    if [[ "$RCLONE_STATUS" -ne 0 ]]; then
+        log ERROR "Rclone failed (exit code: $RCLONE_STATUS)."
+        exit "$RCLONE_STATUS"
+    fi
+
+    log INFO "Rclone finished."
 
 done < <(
   inotifywait \
