@@ -5,6 +5,7 @@ export RCLONE_CONFIG="${RCLONE_CONFIG:-/config/rclone.conf}"
 DEBOUNCE_DELAY="${DEBOUNCE_DELAY:-60}"
 WATCH_DIR="${WATCH_DIR:-/data}"
 WATCH_EVENTS="${WATCH_EVENTS:-close_write,create,delete,move}"
+RUN_ON_START="${RUN_ON_START:-false}"
 
 RCLONE_PID=""
 
@@ -21,20 +22,7 @@ cleanup() {
     fi
 }
 
-trap cleanup EXIT
-trap 'exit 0' TERM INT
-
-log INFO "Watching $WATCH_DIR (debounce: ${DEBOUNCE_DELAY}s, events: ${WATCH_EVENTS})..."
-
-while IFS= read -r; do
-
-    log INFO "Change detected. Waiting for activity to settle..."
-
-    while IFS= read -r -t "$DEBOUNCE_DELAY"; do
-      log DEBUG "Additional change detected. Resetting timer..."
-    done || true
-
-    log INFO "Activity settled. Running rclone..."
+run_rclone() {
     log DEBUG "Running: rclone $@"
 
     rclone "$@" &
@@ -49,6 +37,28 @@ while IFS= read -r; do
     fi
 
     log INFO "Rclone finished."
+}
+
+trap cleanup EXIT
+trap 'exit 0' TERM INT
+
+if [[ "$RUN_ON_START" == "true" ]]; then
+    log INFO "Running initial rclone..."
+    run_rclone "$@"
+fi
+
+log INFO "Watching $WATCH_DIR (debounce: ${DEBOUNCE_DELAY}s, events: ${WATCH_EVENTS})..."
+
+while IFS= read -r; do
+
+    log INFO "Change detected. Waiting for activity to settle..."
+
+    while IFS= read -r -t "$DEBOUNCE_DELAY"; do
+        log DEBUG "Additional change detected. Resetting timer..."
+    done || true
+
+    log INFO "Activity settled. Running rclone..."
+    run_rclone "$@"
 
 done < <(
   inotifywait \
